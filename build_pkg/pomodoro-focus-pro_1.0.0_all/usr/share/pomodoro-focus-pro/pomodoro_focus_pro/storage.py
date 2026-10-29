@@ -1,25 +1,26 @@
 import json
 import os
+import uuid
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, List
 
-PROFILES_DATA = {
+DEFAULT_PROFILES = {
     "yks": {
         "id": "yks",
         "name": "🎓 YKS / Sınav Hazırlık",
-        "description": "Matematik, Fizik, Kimya, Geometri, Paragraf ve Deneme",
+        "description": "Matematik, Geometri, Fizik, Kimya, Paragraf ve Deneme",
         "default_focus": 25,
         "default_short_break": 5,
         "default_long_break": 15,
         "default_daily_goal": 8,
         "subjects": [
-            {"id": "mat", "name": "Matematik", "icon": "📐", "color": "#3B82F6", "badge": "AYT/TYT"},
-            {"id": "geo", "name": "Geometri", "icon": "📏", "color": "#06B6D4", "badge": "AYT/TYT"},
-            {"id": "fiz", "name": "Fizik", "icon": "🔬", "color": "#F59E0B", "badge": "AYT/TYT"},
-            {"id": "kim", "name": "Kimya", "icon": "🧪", "color": "#10B981", "badge": "AYT/TYT"},
-            {"id": "turk", "name": "TYT Paragraf / Türkçe", "icon": "📖", "color": "#EC4899", "badge": "TYT"},
-            {"id": "biy", "name": "Biyoloji", "icon": "🧬", "color": "#84CC16", "badge": "AYT/TYT"},
-            {"id": "deneme", "name": "Deneme Sınavı", "icon": "📝", "color": "#8B5CF6", "badge": "Genel"},
+            {"id": "mat", "name": "Matematik", "icon": "📐", "color": "#3B82F6", "badge": "AYT/TYT", "visible": True},
+            {"id": "geo", "name": "Geometri", "icon": "📏", "color": "#06B6D4", "badge": "AYT/TYT", "visible": True},
+            {"id": "fiz", "name": "Fizik", "icon": "🔬", "color": "#F59E0B", "badge": "AYT/TYT", "visible": True},
+            {"id": "kim", "name": "Kimya", "icon": "🧪", "color": "#10B981", "badge": "AYT/TYT", "visible": True},
+            {"id": "turk", "name": "TYT Paragraf / Türkçe", "icon": "📖", "color": "#EC4899", "badge": "TYT", "visible": True},
+            {"id": "biy", "name": "Biyoloji", "icon": "🧬", "color": "#84CC16", "badge": "AYT/TYT", "visible": True},
+            {"id": "deneme", "name": "Deneme Sınavı", "icon": "📝", "color": "#8B5CF6", "badge": "Genel", "visible": True},
         ]
     },
     "engineering": {
@@ -31,12 +32,12 @@ PROFILES_DATA = {
         "default_long_break": 20,
         "default_daily_goal": 6,
         "subjects": [
-            {"id": "code", "name": "Kodlama / Proje", "icon": "💻", "color": "#6366F1", "badge": "Dev"},
-            {"id": "algo", "name": "Algoritma & Problem", "icon": "⚡", "color": "#F59E0B", "badge": "LeetCode"},
-            {"id": "arch", "name": "Sistem Mimarisi", "icon": "🏗️", "color": "#06B6D4", "badge": "Design"},
-            {"id": "debug", "name": "Bugfix & Debugging", "icon": "🐛", "color": "#EF4444", "badge": "Fix"},
-            {"id": "docs", "name": "Teknik Dokümantasyon", "icon": "📚", "color": "#10B981", "badge": "Docs"},
-            {"id": "infra", "name": "DevOps & Sunucu", "icon": "⚙️", "color": "#8B5CF6", "badge": "Infra"},
+            {"id": "code", "name": "Kodlama / Proje", "icon": "💻", "color": "#6366F1", "badge": "Dev", "visible": True},
+            {"id": "algo", "name": "Algoritma & Problem", "icon": "⚡", "color": "#F59E0B", "badge": "LeetCode", "visible": True},
+            {"id": "arch", "name": "Sistem Mimarisi", "icon": "🏗️", "color": "#06B6D4", "badge": "Design", "visible": True},
+            {"id": "debug", "name": "Bugfix & Debugging", "icon": "🐛", "color": "#EF4444", "badge": "Fix", "visible": True},
+            {"id": "docs", "name": "Teknik Dokümantasyon", "icon": "📚", "color": "#10B981", "badge": "Docs", "visible": True},
+            {"id": "infra", "name": "DevOps & Sunucu", "icon": "⚙️", "color": "#8B5CF6", "badge": "Infra", "visible": True},
         ]
     },
     "business": {
@@ -48,14 +49,16 @@ PROFILES_DATA = {
         "default_long_break": 15,
         "default_daily_goal": 6,
         "subjects": [
-            {"id": "strat", "name": "Strateji & Planlama", "icon": "🎯", "color": "#3B82F6", "badge": "Plan"},
-            {"id": "meet", "name": "Toplantı & İletişim", "icon": "👥", "color": "#8B5CF6", "badge": "Team"},
-            {"id": "report", "name": "Raporlama & Analiz", "icon": "📊", "color": "#10B981", "badge": "Data"},
-            {"id": "tasks", "name": "Operasyon & Görevler", "icon": "📋", "color": "#F59E0B", "badge": "Ops"},
-            {"id": "emails", "name": "E-Posta & İletişim", "icon": "✉️", "color": "#EC4899", "badge": "Mail"},
+            {"id": "strat", "name": "Strateji & Planlama", "icon": "🎯", "color": "#3B82F6", "badge": "Plan", "visible": True},
+            {"id": "meet", "name": "Toplantı & İletişim", "icon": "👥", "color": "#8B5CF6", "badge": "Team", "visible": True},
+            {"id": "report", "name": "Raporlama & Analiz", "icon": "📊", "color": "#10B981", "badge": "Data", "visible": True},
+            {"id": "tasks", "name": "Operasyon & Görevler", "icon": "📋", "color": "#F59E0B", "badge": "Ops", "visible": True},
+            {"id": "emails", "name": "E-Posta & İletişim", "icon": "✉️", "color": "#EC4899", "badge": "Mail", "visible": True},
         ]
     }
 }
+
+PROFILES_DATA = DEFAULT_PROFILES
 
 DEFAULT_CONFIG = {
     "active_profile": "yks",
@@ -70,7 +73,7 @@ DEFAULT_CONFIG = {
     "notifications_enabled": True,
     "daily_goal": 8,
     "mini_mode": False,
-    "profiles_custom": {}
+    "profiles": DEFAULT_PROFILES
 }
 
 class StorageManager:
@@ -92,6 +95,9 @@ class StorageManager:
                     data = json.load(f)
                     cfg = DEFAULT_CONFIG.copy()
                     cfg.update(data)
+                    # Ensure profiles exists
+                    if "profiles" not in cfg or not cfg["profiles"]:
+                        cfg["profiles"] = DEFAULT_PROFILES.copy()
                     return cfg
             except Exception:
                 pass
@@ -155,42 +161,143 @@ class StorageManager:
         }
         self.save_history()
 
-    # --- Profile & Subject Management ---
+    # --- Profile Management ---
+    def get_profiles(self) -> Dict[str, Any]:
+        return self.config.get("profiles", DEFAULT_PROFILES)
+
     def get_active_profile(self) -> Dict[str, Any]:
         pid = self.config.get("active_profile", "yks")
-        custom = self.config.get("profiles_custom", {}).get(pid)
-        if custom:
-            return custom
-        return PROFILES_DATA.get(pid, PROFILES_DATA["yks"])
+        profiles = self.get_profiles()
+        if pid in profiles:
+            return profiles[pid]
+        return profiles.get("yks", DEFAULT_PROFILES["yks"])
 
     def set_active_profile(self, profile_id: str):
-        if profile_id in PROFILES_DATA:
+        profiles = self.get_profiles()
+        if profile_id in profiles:
             self.config["active_profile"] = profile_id
-            prof = PROFILES_DATA[profile_id]
-            self.config["focus_duration"] = prof["default_focus"]
-            self.config["short_break_duration"] = prof["default_short_break"]
-            self.config["long_break_duration"] = prof["default_long_break"]
-            self.config["daily_goal"] = prof["default_daily_goal"]
-            if prof["subjects"]:
+            prof = profiles[profile_id]
+            self.config["focus_duration"] = prof.get("default_focus", 25)
+            self.config["short_break_duration"] = prof.get("default_short_break", 5)
+            self.config["long_break_duration"] = prof.get("default_long_break", 15)
+            self.config["daily_goal"] = prof.get("default_daily_goal", 8)
+
+            # Select first visible subject
+            visible_subs = [s for s in prof.get("subjects", []) if s.get("visible", True)]
+            if visible_subs:
+                self.config["selected_subject_id"] = visible_subs[0]["id"]
+            elif prof.get("subjects"):
                 self.config["selected_subject_id"] = prof["subjects"][0]["id"]
+
             self.save_config()
 
-    def get_subjects(self) -> List[Dict[str, Any]]:
+    def create_profile(self, name: str, description: str, default_focus: int = 25, default_break: int = 5, default_goal: int = 8) -> str:
+        pid = "prof_" + uuid.uuid4().hex[:6]
+        new_prof = {
+            "id": pid,
+            "name": name,
+            "description": description,
+            "default_focus": default_focus,
+            "default_short_break": default_break,
+            "default_long_break": 15,
+            "default_daily_goal": default_goal,
+            "subjects": [
+                {"id": f"{pid}_sub1", "name": "Genel Çalışma", "icon": "🎯", "color": "#3B82F6", "badge": "Ana", "visible": True}
+            ]
+        }
+        self.config.setdefault("profiles", {})[pid] = new_prof
+        self.set_active_profile(pid)
+        return pid
+
+    def delete_profile(self, profile_id: str) -> bool:
+        profiles = self.get_profiles()
+        if profile_id in profiles and len(profiles) > 1:
+            del profiles[profile_id]
+            # If deleted profile was active, switch to first remaining
+            if self.config.get("active_profile") == profile_id:
+                new_pid = next(iter(profiles.keys()))
+                self.set_active_profile(new_pid)
+            else:
+                self.save_config()
+            return True
+        return False
+
+    # --- Subject Management (CRUD + Visibility) ---
+    def get_subjects(self, only_visible: bool = False) -> List[Dict[str, Any]]:
         prof = self.get_active_profile()
-        return prof.get("subjects", [])
+        subs = prof.get("subjects", [])
+        if only_visible:
+            return [s for s in subs if s.get("visible", True)]
+        return subs
 
     def get_selected_subject(self) -> Dict[str, Any]:
-        sub_id = self.config.get("selected_subject_id", "mat")
-        subjects = self.get_subjects()
+        sub_id = self.config.get("selected_subject_id", "")
+        subjects = self.get_subjects(only_visible=False)
         for s in subjects:
             if s["id"] == sub_id:
                 return s
+        # Fallback to first visible or first
+        visible = [s for s in subjects if s.get("visible", True)]
+        if visible:
+            return visible[0]
         if subjects:
             return subjects[0]
-        return {"id": "genel", "name": "Genel Çalışma", "icon": "🎯", "color": "#3B82F6", "badge": "Genel"}
+        return {"id": "genel", "name": "Ders Çalışma", "icon": "🎯", "color": "#3B82F6", "badge": "Genel", "visible": True}
 
     def set_selected_subject(self, subject_id: str):
         self.config["selected_subject_id"] = subject_id
+        self.save_config()
+
+    def add_subject(self, name: str, icon: str, color: str, badge: str = "", visible: bool = True) -> Dict[str, Any]:
+        prof = self.get_active_profile()
+        sub_id = "sub_" + uuid.uuid4().hex[:6]
+        new_sub = {
+            "id": sub_id,
+            "name": name.strip(),
+            "icon": icon.strip() or "📚",
+            "color": color or "#3B82F6",
+            "badge": badge.strip(),
+            "visible": visible
+        }
+        prof.setdefault("subjects", []).append(new_sub)
+        self.save_config()
+        return new_sub
+
+    def update_subject(self, subject_id: str, name: str, icon: str, color: str, badge: str = "", visible: bool = True):
+        prof = self.get_active_profile()
+        for s in prof.get("subjects", []):
+            if s["id"] == subject_id:
+                s["name"] = name.strip()
+                s["icon"] = icon.strip() or "📚"
+                s["color"] = color or "#3B82F6"
+                s["badge"] = badge.strip()
+                s["visible"] = visible
+                break
+        self.save_config()
+
+    def delete_subject(self, subject_id: str) -> bool:
+        prof = self.get_active_profile()
+        subs = prof.get("subjects", [])
+        if len(subs) <= 1:
+            return False  # Don't delete last subject
+
+        prof["subjects"] = [s for s in subs if s["id"] != subject_id]
+        if self.config.get("selected_subject_id") == subject_id:
+            rem = [s for s in prof["subjects"] if s.get("visible", True)]
+            if rem:
+                self.config["selected_subject_id"] = rem[0]["id"]
+            else:
+                self.config["selected_subject_id"] = prof["subjects"][0]["id"]
+
+        self.save_config()
+        return True
+
+    def toggle_subject_visibility(self, subject_id: str, visible: bool):
+        prof = self.get_active_profile()
+        for s in prof.get("subjects", []):
+            if s["id"] == subject_id:
+                s["visible"] = visible
+                break
         self.save_config()
 
     # --- Record Progress ---
@@ -216,26 +323,19 @@ class StorageManager:
 
     # --- Streak & Heatmap Calculations ---
     def calculate_streak(self) -> Dict[str, Any]:
-        """
-        Calculates consecutive study days (Zinciri Kırma).
-        Returns current streak, best streak, and whether today's goal was met.
-        """
         today = date.today()
         current_streak = 0
         best_streak = 0
         temp_streak = 0
 
-        # Sort all historical dates
         sorted_dates = sorted(
             [datetime.strptime(d, "%Y-%m-%d").date() for d in self.history.keys()]
         )
 
-        # Calculate best streak historically
         if sorted_dates:
             prev = None
             for d in sorted_dates:
                 entry = self.history.get(d.isoformat(), {})
-                # Consider active if user completed >= 1 pomodoro
                 if entry.get("pomodoros", 0) > 0:
                     if prev and (d - prev).days == 1:
                         temp_streak += 1
@@ -248,15 +348,12 @@ class StorageManager:
                     prev = None
                     temp_streak = 0
 
-        # Calculate current active streak backwards from today
         check_day = today
-        # Check if today has study
         today_pomo = self.stats.get("today_pomodoros", 0)
         if today_pomo > 0:
             current_streak += 1
             check_day = today - timedelta(days=1)
         else:
-            # If today not yet, check yesterday to preserve streak
             check_day = today - timedelta(days=1)
 
         while True:
@@ -283,14 +380,10 @@ class StorageManager:
         }
 
     def get_past_days_data(self) -> List[Dict[str, Any]]:
-        """
-        Returns list of day entries for 4 full weeks (Mon-Sun) for heatmap drawing.
-        """
         results = []
         today = date.today()
         goal = self.config.get("daily_goal", 8)
 
-        # Align to 4 full weeks ending on Sunday of current week
         days_to_sunday = 6 - today.weekday()
         end_date = today + timedelta(days=days_to_sunday)
         start_date = end_date - timedelta(days=27)

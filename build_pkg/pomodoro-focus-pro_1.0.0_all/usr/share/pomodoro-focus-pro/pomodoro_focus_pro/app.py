@@ -16,6 +16,7 @@ from .timer_engine import TimerEngine, MODE_FOCUS, MODE_SHORT_BREAK, MODE_LONG_B
 from .circular_ring import CircularProgressRing
 from .heatmap_widget import HeatmapWidget
 from .settings_dialog import SettingsDialog
+from .subject_manager_dialogs import open_subject_dialog, open_profile_dialog, confirm_delete_dialog
 
 APP_ID = "com.github.erdogan.PomodoroFocusPro"
 
@@ -369,33 +370,47 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         )
 
     # =========================================================================
-    # TAB 3: MODLAR & DERSLER (PROFILES & WORKSPACES)
+    # TAB 3: MODLAR & DERS YÖNETİMİ (PROFILES & SUBJECT MANAGEMENT)
     # =========================================================================
     def _build_profiles_page(self):
         scroller = Gtk.ScrolledWindow()
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
 
-        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         content.set_margin_top(16)
-        content.set_margin_bottom(24)
-        content.set_margin_start(24)
-        content.set_margin_end(24)
+        content.set_margin_bottom(28)
+        content.set_margin_start(22)
+        content.set_margin_end(22)
         scroller.set_child(content)
 
-        # Profile selection title
-        p_title = Gtk.Label(label="🎓 Çalışma Alanı & Mod Seçimi")
+        # ---------------------------------------------------------------------
+        # 1. ÇALIŞMA ALANI / MOD SEÇİMİ (PROFILES)
+        # ---------------------------------------------------------------------
+        prof_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        p_title = Gtk.Label(label="🎓 Çalışma Modu / Profil")
         p_title.add_css_class("discipline-title")
-        p_title.set_halign(Gtk.Align.START)
-        content.append(p_title)
+        prof_header.append(p_title)
+
+        prof_spacer = Gtk.Box()
+        prof_spacer.set_hexpand(True)
+        prof_header.append(prof_spacer)
+
+        add_prof_btn = Gtk.Button(label="+ Yeni Mod Ekle")
+        add_prof_btn.add_css_class("btn-secondary")
+        add_prof_btn.connect("clicked", lambda b: open_profile_dialog(self, self.storage, on_saved=self._on_profile_added))
+        prof_header.append(add_prof_btn)
+        content.append(prof_header)
 
         # Profiles list
+        profiles = self.storage.get_profiles()
         active_pid = self.storage.config.get("active_profile", "yks")
-        for pid, pdata in PROFILES_DATA.items():
+
+        for pid, pdata in profiles.items():
             card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
             card.add_css_class("metric-card")
 
             top_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-            lbl_name = Gtk.Label(label=pdata["name"])
+            lbl_name = Gtk.Label(label=pdata.get("name", "Mod"))
             lbl_name.add_css_class("discipline-title")
             top_row.append(lbl_name)
 
@@ -403,28 +418,131 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
             spacer.set_hexpand(True)
             top_row.append(spacer)
 
-            select_btn = Gtk.Button(label="Seçildi" if pid == active_pid else "Aktif Yap")
-            select_btn.add_css_class("suggested-action" if pid == active_pid else "btn-secondary")
-            select_btn.connect("clicked", self._make_profile_selector(pid))
-            top_row.append(select_btn)
+            if pid == active_pid:
+                active_badge = Gtk.Label(label="✓ Aktif")
+                active_badge.add_css_class("suggested-action")
+                active_badge.set_margin_end(6)
+                top_row.append(active_badge)
+            else:
+                select_btn = Gtk.Button(label="Seç")
+                select_btn.add_css_class("btn-secondary")
+                select_btn.connect("clicked", self._make_profile_selector(pid))
+                top_row.append(select_btn)
+
+            # Delete button for custom profiles (if more than 1 profile)
+            if pid.startswith("prof_") and len(profiles) > 1:
+                del_p_btn = Gtk.Button(icon_name="user-trash-symbolic")
+                del_p_btn.add_css_class("flat")
+                del_p_btn.set_tooltip_text("Profili Sil")
+                del_p_btn.connect("clicked", self._make_delete_profile_handler(pid, pdata.get("name", "Mod")))
+                top_row.append(del_p_btn)
+
             card.append(top_row)
 
-            lbl_desc = Gtk.Label(label=pdata["description"])
+            lbl_desc = Gtk.Label(label=pdata.get("description", ""))
             lbl_desc.add_css_class("metric-sub")
             lbl_desc.set_halign(Gtk.Align.START)
             card.append(lbl_desc)
 
-            # Subjects chips preview
-            chips_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-            for s in pdata["subjects"]:
-                chip_lbl = Gtk.Label(label=f"{s['icon']} {s['name']}")
-                chip_lbl.add_css_class("subject-chip")
-                chips_row.append(chip_lbl)
-            card.append(chips_row)
-
             content.append(card)
 
-        # Preset Durations Section
+        # ---------------------------------------------------------------------
+        # 2. DERSLER VE KONULAR YÖNETİMİ (SUBJECTS CRUD & VISIBILITY)
+        # ---------------------------------------------------------------------
+        sub_header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        sub_header.set_margin_top(8)
+
+        active_prof = self.storage.get_active_profile()
+        all_subjects = self.storage.get_subjects(only_visible=False)
+
+        sub_title = Gtk.Label(label=f"📚 {active_prof.get('name', 'Aktif')} Dersleri ({len(all_subjects)} Ders)")
+        sub_title.add_css_class("discipline-title")
+        sub_header.append(sub_title)
+
+        sub_spacer = Gtk.Box()
+        sub_spacer.set_hexpand(True)
+        sub_header.append(sub_spacer)
+
+        add_sub_btn = Gtk.Button(label="+ Yeni Ders Ekle")
+        add_sub_btn.add_css_class("suggested-action")
+        add_sub_btn.connect("clicked", lambda b: open_subject_dialog(self, self.storage, subject=None, on_saved=self._on_subject_changed))
+        sub_header.append(add_sub_btn)
+        content.append(sub_header)
+
+        # Subjects list container
+        subjects_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        subjects_card.add_css_class("metric-card")
+
+        if not all_subjects:
+            no_sub_lbl = Gtk.Label(label="Bu modda henüz ders yok. Yukarıdaki butondan ekleyin.")
+            no_sub_lbl.add_css_class("metric-sub")
+            subjects_card.append(no_sub_lbl)
+        else:
+            for s in all_subjects:
+                row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+                row.set_margin_top(4)
+                row.set_margin_bottom(4)
+
+                # Color circle & emoji icon
+                c_box = Gtk.Box()
+                c_box.set_size_request(28, 28)
+                c_lbl = Gtk.Label(label=s.get("icon", "📚"))
+                c_box.append(c_lbl)
+                row.append(c_box)
+
+                # Subject Name & Badge
+                text_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=1)
+                lbl_sname = Gtk.Label(label=s.get("name", "Ders"))
+                lbl_sname.add_css_class("discipline-title")
+                lbl_sname.set_halign(Gtk.Align.START)
+                text_box.append(lbl_sname)
+
+                badge = s.get("badge", "")
+                if badge:
+                    lbl_sbadge = Gtk.Label(label=badge)
+                    lbl_sbadge.add_css_class("metric-sub")
+                    lbl_sbadge.set_halign(Gtk.Align.START)
+                    text_box.append(lbl_sbadge)
+                row.append(text_box)
+
+                row_spacer = Gtk.Box()
+                row_spacer.set_hexpand(True)
+                row.append(row_spacer)
+
+                # 1. Ana Ekranda Göster Switch (Visibility Toggle)
+                vis_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+                lbl_v = Gtk.Label(label="Ana Ekranda:")
+                lbl_v.add_css_class("metric-sub")
+                vis_box.append(lbl_v)
+
+                sw = Gtk.Switch()
+                sw.set_active(s.get("visible", True))
+                sw.connect("notify::active", self._make_visibility_toggle_handler(s["id"]))
+                vis_box.append(sw)
+                row.append(vis_box)
+
+                # 2. Düzenle Butonu (Edit)
+                edit_btn = Gtk.Button(icon_name="document-edit-symbolic")
+                edit_btn.add_css_class("flat")
+                edit_btn.set_tooltip_text("Dersi Düzenle")
+                edit_btn.connect("clicked", self._make_edit_subject_handler(s))
+                row.append(edit_btn)
+
+                # 3. Sil Butonu (Delete)
+                if len(all_subjects) > 1:
+                    del_btn = Gtk.Button(icon_name="user-trash-symbolic")
+                    del_btn.add_css_class("flat")
+                    del_btn.set_tooltip_text("Dersi Sil")
+                    del_btn.connect("clicked", self._make_delete_subject_handler(s))
+                    row.append(del_btn)
+
+                subjects_card.append(row)
+
+        content.append(subjects_card)
+
+        # ---------------------------------------------------------------------
+        # 3. HIZLI SÜRE ŞABLONLARI
+        # ---------------------------------------------------------------------
         dur_title = Gtk.Label(label="⏱️ Hızlı Seans Şablonları")
         dur_title.add_css_class("discipline-title")
         dur_title.set_halign(Gtk.Align.START)
@@ -453,6 +571,66 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
             scroller, "profiles", "Modlar", "system-users-symbolic"
         )
 
+    def _make_visibility_toggle_handler(self, subject_id: str):
+        def _handler(switch, pspec):
+            is_active = switch.get_active()
+            self.storage.toggle_subject_visibility(subject_id, is_active)
+            self._populate_subject_chips()
+            self.ring.update_subject(self.storage.get_selected_subject())
+        return _handler
+
+    def _make_edit_subject_handler(self, subject: dict):
+        def _handler(btn):
+            open_subject_dialog(self, self.storage, subject=subject, on_saved=self._on_subject_changed)
+        return _handler
+
+    def _make_delete_subject_handler(self, subject: dict):
+        def _handler(btn):
+            confirm_delete_dialog(
+                self,
+                f"'{subject.get('name')}' Silinsin mi?",
+                "Bu dersi aktif profilden kaldırmak istediğinizden emin misiniz?",
+                on_confirmed=lambda: self._do_delete_subject(subject["id"])
+            )
+        return _handler
+
+    def _do_delete_subject(self, subject_id: str):
+        self.storage.delete_subject(subject_id)
+        self._on_subject_changed()
+
+    def _make_delete_profile_handler(self, profile_id: str, profile_name: str):
+        def _handler(btn):
+            confirm_delete_dialog(
+                self,
+                f"'{profile_name}' Profili Silinsin mi?",
+                "Bu çalışma modunu ve içindeki tüm dersleri kaldırmak istediğinizden emin misiniz?",
+                on_confirmed=lambda: self._do_delete_profile(profile_id)
+            )
+        return _handler
+
+    def _do_delete_profile(self, profile_id: str):
+        self.storage.delete_profile(profile_id)
+        self._on_subject_changed()
+
+    def _on_subject_changed(self):
+        self._populate_subject_chips()
+        self.ring.update_subject(self.storage.get_selected_subject())
+        self._update_start_button_style()
+        self._refresh_profiles_page_view()
+
+    def _on_profile_added(self):
+        self._populate_subject_chips()
+        self.ring.update_subject(self.storage.get_selected_subject())
+        self._update_start_button_style()
+        self._refresh_profiles_page_view()
+
+    def _refresh_profiles_page_view(self):
+        child = self.view_stack.get_child_by_name("profiles")
+        if child:
+            self.view_stack.remove(child)
+        self._build_profiles_page()
+        self.view_stack.set_visible_child_name("profiles")
+
     def _make_profile_selector(self, profile_id: str):
         def _handler(btn):
             self.storage.set_active_profile(profile_id)
@@ -463,9 +641,7 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
             if self.timer.state == STATE_STOPPED:
                 self.timer.reset()
 
-            # Refresh profiles page view
-            self.view_stack.remove(self.view_stack.get_child_by_name("profiles"))
-            self._build_profiles_page()
+            self._refresh_profiles_page_view()
             self.view_stack.set_visible_child_name("timer")
         return _handler
 
@@ -486,7 +662,10 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         while child := self.subject_flowbox.get_first_child():
             self.subject_flowbox.remove(child)
 
-        subjects = self.storage.get_subjects()
+        subjects = self.storage.get_subjects(only_visible=True)
+        if not subjects:
+            subjects = self.storage.get_subjects(only_visible=False)
+
         sel_sub = self.storage.get_selected_subject()
         sel_id = sel_sub.get("id", "")
 
