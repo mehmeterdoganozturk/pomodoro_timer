@@ -64,6 +64,7 @@ DEFAULT_CONFIG = {
     "active_profile": "yks",
     "selected_subject_id": "mat",
     "focus_duration": 25,
+    "test_duration": 20,
     "short_break_duration": 5,
     "long_break_duration": 15,
     "long_break_interval": 4,

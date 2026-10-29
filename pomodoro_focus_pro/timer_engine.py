@@ -2,6 +2,8 @@ import time
 from gi.repository import GLib
 
 MODE_FOCUS = "focus"
+MODE_TEST = "test"
+MODE_STOPWATCH = "stopwatch"
 MODE_SHORT_BREAK = "short_break"
 MODE_LONG_BREAK = "long_break"
 
@@ -21,6 +23,7 @@ class TimerEngine:
         self.session_count = 0
         self.total_duration_seconds = self._get_mode_duration_seconds(self.mode)
         self.remaining_seconds = float(self.total_duration_seconds)
+        self.stopwatch_seconds = 0.0
         self.last_tick_time = None
 
         self._glib_source_id = None
@@ -33,13 +36,21 @@ class TimerEngine:
         cfg = self.storage.config
         if mode == MODE_FOCUS:
             return cfg.get("focus_duration", 25) * 60
+        elif mode == MODE_TEST:
+            return cfg.get("test_duration", 20) * 60
         elif mode == MODE_SHORT_BREAK:
             return cfg.get("short_break_duration", 5) * 60
         elif mode == MODE_LONG_BREAK:
             return cfg.get("long_break_duration", 15) * 60
+        elif mode == MODE_STOPWATCH:
+            return 0
         return 25 * 60
 
     def get_progress_ratio(self) -> float:
+        if self.mode == MODE_STOPWATCH:
+            # Loop every 60 seconds for visual ring rotation
+            return (self.stopwatch_seconds % 60.0) / 60.0
+
         if self.total_duration_seconds <= 0:
             return 0.0
         elapsed = self.total_duration_seconds - self.remaining_seconds
@@ -47,6 +58,12 @@ class TimerEngine:
         return max(0.0, min(1.0, ratio))
 
     def get_formatted_time(self) -> str:
+        if self.mode == MODE_STOPWATCH:
+            secs = int(round(self.stopwatch_seconds))
+            m = secs // 60
+            s = secs % 60
+            return f"{m:02d}:{s:02d}"
+
         secs = int(max(0, round(self.remaining_seconds)))
         m = secs // 60
         s = secs % 60
@@ -61,6 +78,46 @@ class TimerEngine:
         self.state = STATE_STOPPED
         self.total_duration_seconds = self._get_mode_duration_seconds(new_mode)
         self.remaining_seconds = float(self.total_duration_seconds)
+        self.stopwatch_seconds = 0.0
+        self.last_tick_time = None
+
+        self._notify_mode_change()
+        self._notify_tick()
+
+        if auto_start:
+            self.start()
+
+    def set_test_minutes(self, minutes: int, auto_start: bool = False):
+        self.storage.config["test_duration"] = minutes
+        self.storage.save_config()
+
+        if self._glib_source_id:
+            GLib.source_remove(self._glib_source_id)
+            self._glib_source_id = None
+
+        self.mode = MODE_TEST
+        self.state = STATE_STOPPED
+        self.total_duration_seconds = minutes * 60
+        self.remaining_seconds = float(self.total_duration_seconds)
+        self.stopwatch_seconds = 0.0
+        self.last_tick_time = None
+
+        self._notify_mode_change()
+        self._notify_tick()
+
+        if auto_start:
+            self.start()
+
+    def set_stopwatch_mode(self, auto_start: bool = False):
+        if self._glib_source_id:
+            GLib.source_remove(self._glib_source_id)
+            self._glib_source_id = None
+
+        self.mode = MODE_STOPWATCH
+        self.state = STATE_STOPPED
+        self.total_duration_seconds = 0
+        self.remaining_seconds = 0.0
+        self.stopwatch_seconds = 0.0
         self.last_tick_time = None
 
         self._notify_mode_change()
@@ -104,8 +161,12 @@ class TimerEngine:
             self._glib_source_id = None
 
         self.state = STATE_STOPPED
-        self.total_duration_seconds = self._get_mode_duration_seconds(self.mode)
-        self.remaining_seconds = float(self.total_duration_seconds)
+        if self.mode == MODE_STOPWATCH:
+            self.stopwatch_seconds = 0.0
+        else:
+            self.total_duration_seconds = self._get_mode_duration_seconds(self.mode)
+            self.remaining_seconds = float(self.total_duration_seconds)
+
         self.last_tick_time = None
 
         self._notify_state_change()
@@ -123,6 +184,11 @@ class TimerEngine:
         delta = now - self.last_tick_time
         self.last_tick_time = now
 
+        if self.mode == MODE_STOPWATCH:
+            self.stopwatch_seconds += delta
+            self._notify_tick()
+            return True
+
         self.remaining_seconds -= delta
 
         if self.remaining_seconds <= 0:
@@ -139,15 +205,26 @@ class TimerEngine:
         self.state = STATE_STOPPED
         current_mode = self.mode
 
-        if current_mode == MODE_FOCUS:
+        subject = self.storage.get_selected_subject()
+        sub_id = subject.get("id", "genel")
+        sub_name = subject.get("name", "Ders Çalışma")
+        sub_icon = subject.get("icon", "🎯")
+
+        if current_mode == MODE_TEST:
+            self.session_count += 1
+            test_sec = self.total_duration_seconds
+            self.storage.record_completed_pomodoro(test_sec, sub_id)
+            self.sound.play_focus_complete()
+
+            test_mins = max(1, int(round(test_sec / 60)))
+            self.notifier.notify_test_finished(sub_name, sub_icon, test_mins)
+
+            auto_start = self.storage.config.get("auto_start_breaks", False)
+            self._advance_to_next_mode(completed=True, next_mode=MODE_SHORT_BREAK, auto_start=auto_start)
+
+        elif current_mode == MODE_FOCUS:
             self.session_count += 1
             focus_sec = self.total_duration_seconds
-
-            subject = self.storage.get_selected_subject()
-            sub_id = subject.get("id", "genel")
-            sub_name = subject.get("name", "Ders Çalışma")
-            sub_icon = subject.get("icon", "🎯")
-
             self.storage.record_completed_pomodoro(focus_sec, sub_id)
             self.sound.play_focus_complete()
 
@@ -176,7 +253,7 @@ class TimerEngine:
 
     def _advance_to_next_mode(self, completed: bool = False, next_mode: str = None, auto_start: bool = False):
         if not next_mode:
-            if self.mode == MODE_FOCUS:
+            if self.mode in (MODE_FOCUS, MODE_TEST):
                 interval = self.storage.config.get("long_break_interval", 4)
                 is_long = (self.session_count > 0 and self.session_count % interval == 0)
                 next_mode = MODE_LONG_BREAK if is_long else MODE_SHORT_BREAK

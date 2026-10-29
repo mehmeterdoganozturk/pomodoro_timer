@@ -185,6 +185,10 @@ class PomodoroIndicator extends PanelMenu.Button {
         let icon = subIcon || '🍅';
         if (mode === 'short_break' || mode === 'long_break') {
             icon = '☕';
+        } else if (mode === 'test') {
+            icon = '📝';
+        } else if (mode === 'stopwatch') {
+            icon = '⏱️';
         }
 
         let statePrefix = '';
@@ -203,6 +207,8 @@ class PomodoroIndicator extends PanelMenu.Button {
         let modeText = subName || 'Ders Çalışma';
         if (mode === 'short_break') modeText = 'Kısa Mola';
         else if (mode === 'long_break') modeText = 'Uzun Mola';
+        else if (mode === 'test') modeText = `${subName} Testi`;
+        else if (mode === 'stopwatch') modeText = 'Serbest Kronometre';
 
         this._statusItem.label.set_text(`${icon} ${modeText} • ${timeStr} (${stateText})`);
 

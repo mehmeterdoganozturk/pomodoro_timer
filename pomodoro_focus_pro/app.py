@@ -12,7 +12,7 @@ from gi.repository import Gtk, Adw, Gdk, GLib, Pango
 from .storage import StorageManager, PROFILES_DATA
 from .sound_player import SoundPlayer
 from .notifier import DesktopNotifier, MOTIVATIONAL_QUOTES
-from .timer_engine import TimerEngine, MODE_FOCUS, MODE_SHORT_BREAK, MODE_LONG_BREAK, STATE_RUNNING, STATE_PAUSED, STATE_STOPPED
+from .timer_engine import TimerEngine, MODE_FOCUS, MODE_TEST, MODE_STOPWATCH, MODE_SHORT_BREAK, MODE_LONG_BREAK, STATE_RUNNING, STATE_PAUSED, STATE_STOPPED
 from .circular_ring import CircularProgressRing
 from .heatmap_widget import HeatmapWidget
 from .settings_dialog import SettingsDialog
@@ -177,6 +177,11 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         self.tab_focus.connect("clicked", lambda b: self._select_mode(MODE_FOCUS))
         self.tabs_container.append(self.tab_focus)
 
+        self.tab_test = Gtk.Button(label="📝 Test & Sınav")
+        self.tab_test.add_css_class("mode-tab")
+        self.tab_test.connect("clicked", lambda b: self._select_mode(MODE_TEST))
+        self.tabs_container.append(self.tab_test)
+
         self.tab_short = Gtk.Button(label="☕ Kısa Mola")
         self.tab_short.add_css_class("mode-tab")
         self.tab_short.connect("clicked", lambda b: self._select_mode(MODE_SHORT_BREAK))
@@ -186,6 +191,39 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         self.tab_long.add_css_class("mode-tab")
         self.tab_long.connect("clicked", lambda b: self._select_mode(MODE_LONG_BREAK))
         self.tabs_container.append(self.tab_long)
+
+        # 1.1 Test & Kronometre Presets Bar
+        self.test_presets_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        self.test_presets_box.add_css_class("test-bar-box")
+        self.test_presets_box.set_halign(Gtk.Align.CENTER)
+        self.timer_page_box.append(self.test_presets_box)
+
+        self.btn_preset_20 = Gtk.Button(label="🎯 20 Dk (20 Soru)")
+        self.btn_preset_20.add_css_class("test-preset-btn")
+        self.btn_preset_20.connect("clicked", lambda b: self._apply_test_preset(20))
+        self.test_presets_box.append(self.btn_preset_20)
+
+        self.btn_preset_30 = Gtk.Button(label="🎯 30 Dk (30 Soru)")
+        self.btn_preset_30.add_css_class("test-preset-btn")
+        self.btn_preset_30.connect("clicked", lambda b: self._apply_test_preset(30))
+        self.test_presets_box.append(self.btn_preset_30)
+
+        self.btn_preset_40 = Gtk.Button(label="🎯 40 Dk (TYT)")
+        self.btn_preset_40.add_css_class("test-preset-btn")
+        self.btn_preset_40.connect("clicked", lambda b: self._apply_test_preset(40))
+        self.test_presets_box.append(self.btn_preset_40)
+
+        self.btn_preset_stopwatch = Gtk.Button(label="⏱️ Kronometre")
+        self.btn_preset_stopwatch.add_css_class("test-preset-btn")
+        self.btn_preset_stopwatch.connect("clicked", lambda b: self._apply_stopwatch_mode())
+        self.test_presets_box.append(self.btn_preset_stopwatch)
+
+        self.btn_preset_custom = Gtk.Button(label="⚙️ Özel Dk")
+        self.btn_preset_custom.add_css_class("test-preset-btn")
+        self.btn_preset_custom.connect("clicked", self._open_custom_test_dialog)
+        self.test_presets_box.append(self.btn_preset_custom)
+
+        self.test_presets_box.set_visible(False)
 
         # 2. Subject Selector Chips (Ders Seçici FlowBox - No ugly scrollbar)
         self.subject_flowbox = Gtk.FlowBox()
@@ -723,26 +761,137 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
 
         return card, lbl_val, lbl_sub
 
+    # =========================================================================
+    # TEST & KRONOMETRE PRESETS
+    # =========================================================================
+    def _apply_test_preset(self, minutes: int):
+        self._highlight_test_preset(minutes)
+        self.timer.set_test_minutes(minutes, auto_start=False)
+        self._update_start_button_style()
+        toast = Adw.Toast.new(f"📝 Test Modu: {minutes} dakika süre ayarlandı.")
+        self.toast_overlay.add_toast(toast)
+
+    def _apply_stopwatch_mode(self):
+        self._highlight_test_preset("stopwatch")
+        self.timer.set_stopwatch_mode(auto_start=False)
+        self._update_start_button_style()
+        toast = Adw.Toast.new("⏱️ Serbest Kronometre modu aktif.")
+        self.toast_overlay.add_toast(toast)
+
+    def _highlight_test_preset(self, active_val):
+        for btn in (self.btn_preset_20, self.btn_preset_30, self.btn_preset_40, self.btn_preset_stopwatch, self.btn_preset_custom):
+            btn.remove_css_class("active-preset")
+
+        if active_val == 20:
+            self.btn_preset_20.add_css_class("active-preset")
+        elif active_val == 30:
+            self.btn_preset_30.add_css_class("active-preset")
+        elif active_val == 40:
+            self.btn_preset_40.add_css_class("active-preset")
+        elif active_val == "stopwatch":
+            self.btn_preset_stopwatch.add_css_class("active-preset")
+        elif isinstance(active_val, (int, float)):
+            self.btn_preset_custom.add_css_class("active-preset")
+
+    def _open_custom_test_dialog(self, btn=None):
+        dlg = Adw.AlertDialog.new(
+            "Özel Test / Soru Süresi Belirle",
+            "Çözeceğiniz soru sayısına göre dakikanızı ayarlayın (Örn: 20 soru = 20 dk, 35 soru = 35 dk)."
+        )
+        dlg.add_response("cancel", "İptal")
+        dlg.add_response("apply", "Süreyi Ayarla")
+        dlg.set_response_appearance("apply", Adw.ResponseAppearance.SUGGESTED)
+        dlg.set_default_response("apply")
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        box.set_margin_top(10)
+        box.set_margin_bottom(6)
+        box.set_margin_start(12)
+        box.set_margin_end(12)
+
+        # Quick preset buttons for common test durations
+        lbl_quick = Gtk.Label(label="Hızlı Seçenekler:")
+        lbl_quick.add_css_class("metric-sub")
+        lbl_quick.set_halign(Gtk.Align.START)
+        box.append(lbl_quick)
+
+        quick_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        quick_box.set_halign(Gtk.Align.CENTER)
+
+        current_td = self.storage.config.get("test_duration", 25)
+
+        spin = Gtk.SpinButton.new_with_range(1, 180, 1)
+        spin.set_value(float(current_td))
+        spin.set_halign(Gtk.Align.CENTER)
+
+        for m_val in (15, 25, 35, 45, 60, 75):
+            qb = Gtk.Button(label=f"{m_val} dk")
+            qb.add_css_class("btn-secondary")
+            qb.connect("clicked", lambda b, v=m_val: spin.set_value(float(v)))
+            quick_box.append(qb)
+        box.append(quick_box)
+
+        # Spin Row
+        spin_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        spin_row.set_halign(Gtk.Align.CENTER)
+        lbl_spin = Gtk.Label(label="Süre (Dakika):")
+        lbl_spin.add_css_class("discipline-title")
+        spin_row.append(lbl_spin)
+        spin_row.append(spin)
+        box.append(spin_row)
+
+        dlg.set_extra_child(box)
+
+        def _on_response(dialog, result):
+            resp = dialog.choose_finish(result)
+            if resp == "apply":
+                chosen_minutes = int(spin.get_value())
+                self._apply_test_preset(chosen_minutes)
+
+        dlg.choose(self, None, _on_response)
+
     def _update_mode_tabs(self, mode: str):
-        for btn in (self.tab_focus, self.tab_short, self.tab_long):
+        for btn in (self.tab_focus, self.tab_test, self.tab_short, self.tab_long):
             btn.remove_css_class("active-focus")
+            btn.remove_css_class("active-test")
+            btn.remove_css_class("active-stopwatch")
             btn.remove_css_class("active-short-break")
             btn.remove_css_class("active-long-break")
 
         if mode == MODE_FOCUS:
             self.tab_focus.add_css_class("active-focus")
+            self.test_presets_box.set_visible(False)
+        elif mode == MODE_TEST:
+            self.tab_test.add_css_class("active-test")
+            if not self.is_mini_mode:
+                self.test_presets_box.set_visible(True)
+            td = self.storage.config.get("test_duration", 20)
+            self._highlight_test_preset(td)
+        elif mode == MODE_STOPWATCH:
+            self.tab_test.add_css_class("active-stopwatch")
+            if not self.is_mini_mode:
+                self.test_presets_box.set_visible(True)
+            self._highlight_test_preset("stopwatch")
         elif mode == MODE_SHORT_BREAK:
             self.tab_short.add_css_class("active-short-break")
+            self.test_presets_box.set_visible(False)
         elif mode == MODE_LONG_BREAK:
             self.tab_long.add_css_class("active-long-break")
+            self.test_presets_box.set_visible(False)
 
     def _update_start_button_style(self):
         self.start_btn.remove_css_class("btn-primary-focus")
+        self.start_btn.remove_css_class("btn-primary-test")
+        self.start_btn.remove_css_class("btn-primary-stopwatch")
         self.start_btn.remove_css_class("btn-primary-short-break")
         self.start_btn.remove_css_class("btn-primary-long-break")
 
         if self.timer.mode == MODE_FOCUS:
             self.start_btn.add_css_class("btn-primary-focus")
+        elif self.timer.mode == MODE_TEST:
+            self.start_btn.add_css_class("btn-primary-test")
+        elif self.timer.mode == MODE_STOPWATCH:
+            self.start_btn.add_css_class("btn-primary-stopwatch")
         elif self.timer.mode == MODE_SHORT_BREAK:
             self.start_btn.add_css_class("btn-primary-short-break")
         elif self.timer.mode == MODE_LONG_BREAK:
@@ -846,12 +995,23 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
     def _select_mode(self, mode: str):
         if self.timer.state == STATE_RUNNING:
             self.timer.pause()
-        self.timer.set_mode(mode)
+        if mode == MODE_TEST:
+            td = self.storage.config.get("test_duration", 20)
+            self._apply_test_preset(td)
+        else:
+            self.timer.set_mode(mode)
 
     def _on_tick(self, time_str: str, progress_ratio: float):
         if self.timer.state == STATE_RUNNING:
             sub = self.storage.get_selected_subject()
-            prefix = f"{sub.get('icon', '🍅')} {sub.get('name', 'Odak')}" if self.timer.mode == MODE_FOCUS else "☕ Mola"
+            if self.timer.mode == MODE_FOCUS:
+                prefix = f"{sub.get('icon', '🍅')} {sub.get('name', 'Odak')}"
+            elif self.timer.mode == MODE_TEST:
+                prefix = f"📝 {sub.get('name', 'Test')}"
+            elif self.timer.mode == MODE_STOPWATCH:
+                prefix = "⏱️ Kronometre"
+            else:
+                prefix = "☕ Mola"
             self.set_title(f"({time_str}) {prefix} - Pomodoro Pro")
         else:
             self.set_title("Pomodoro Focus Pro")
@@ -866,8 +1026,10 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
     def _on_session_complete(self, completed_mode: str):
         self._update_stats_display()
         self._refresh_streak_page()
-        if completed_mode == MODE_FOCUS:
-            sub = self.storage.get_selected_subject()
+        sub = self.storage.get_selected_subject()
+        if completed_mode == MODE_TEST:
+            toast = Adw.Toast.new(f"🎯 Tebrikler! {sub['icon']} {sub['name']} test seansını tamamladın! Netleri kontrol et!")
+        elif completed_mode == MODE_FOCUS:
             toast = Adw.Toast.new(f"🎉 Harika! {sub['icon']} {sub['name']} seansını tamamladın. Zincir güçleniyor!")
         else:
             toast = Adw.Toast.new("☕ Mola bitti! Yeni seansa hazırsın.")
@@ -909,6 +1071,7 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         if is_mini:
             self.view_switcher.set_visible(False)
             self.tabs_container.set_visible(False)
+            self.test_presets_box.set_visible(False)
             self.subject_flowbox.set_visible(False)
             self.discipline_box.set_visible(False)
             self.stats_cards_container.set_visible(False)
@@ -923,6 +1086,8 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         else:
             self.view_switcher.set_visible(True)
             self.tabs_container.set_visible(True)
+            if self.timer.mode in (MODE_TEST, MODE_STOPWATCH):
+                self.test_presets_box.set_visible(True)
             self.subject_flowbox.set_visible(True)
             self.discipline_box.set_visible(True)
             self.stats_cards_container.set_visible(True)

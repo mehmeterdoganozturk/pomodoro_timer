@@ -39,6 +39,14 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.focus_spin.connect("notify::value", self._on_value_changed)
         dur_group.add(self.focus_spin)
 
+        # Varsayılan Test / Soru Süresi
+        self.test_spin = Adw.SpinRow.new_with_range(5, 180, 5)
+        self.test_spin.set_title("Varsayılan Test Süresi (Dakika)")
+        self.test_spin.set_subtitle("Soru çözme ve deneme sınavı süresi")
+        self.test_spin.set_value(self.storage.config.get("test_duration", 20))
+        self.test_spin.connect("notify::value", self._on_value_changed)
+        dur_group.add(self.test_spin)
+
         # Kısa Mola
         self.short_spin = Adw.SpinRow.new_with_range(1, 30, 1)
         self.short_spin.set_title("Kısa Mola Süresi (Dakika)")
@@ -145,6 +153,7 @@ class SettingsDialog(Adw.PreferencesWindow):
     def _on_value_changed(self, widget, pspec):
         cfg = self.storage.config
         cfg["focus_duration"] = int(self.focus_spin.get_value())
+        cfg["test_duration"] = int(self.test_spin.get_value())
         cfg["short_break_duration"] = int(self.short_spin.get_value())
         cfg["long_break_duration"] = int(self.long_spin.get_value())
         cfg["long_break_interval"] = int(self.interval_spin.get_value())

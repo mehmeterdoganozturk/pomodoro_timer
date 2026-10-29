@@ -39,6 +39,16 @@ class DesktopNotifier:
 
         self._send_notification(title, message, urgency="normal")
 
+    def notify_test_finished(self, subject_name: str, subject_icon: str, test_minutes: int):
+        if not self.storage.config.get("notifications_enabled", True):
+            return
+
+        quote = random.choice(MOTIVATIONAL_QUOTES)
+        title = f"📝 {subject_icon} {subject_name} Testi Tamamlandı!"
+        message = f"Tebrikler! {test_minutes} dakikalık test süreniz sona erdi. Cevapları ve netleri kontrol etme vakti!\n\n💡 {quote}"
+
+        self._send_notification(title, message, urgency="normal")
+
     def notify_break_finished(self):
         if not self.storage.config.get("notifications_enabled", True):
             return

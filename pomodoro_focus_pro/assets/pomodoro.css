@@ -48,6 +48,18 @@ headerbar.pomodoro-header {
     box-shadow: 0 4px 12px rgba(229, 57, 53, 0.4);
 }
 
+.mode-tab.active-test {
+    background: #8B5CF6;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.45);
+}
+
+.mode-tab.active-stopwatch {
+    background: #06B6D4;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(6, 182, 212, 0.45);
+}
+
 .mode-tab.active-short-break {
     background: #10B981;
     color: #FFFFFF;
@@ -158,6 +170,64 @@ flowboxchild:focus {
     padding: 10px 32px;
     border: none;
     box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+.btn-primary-test {
+    background: #8B5CF6;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: 28px;
+    padding: 10px 32px;
+    border: none;
+    box-shadow: 0 4px 14px rgba(139, 92, 246, 0.45);
+}
+.btn-primary-test:hover {
+    background: #A78BFA;
+    box-shadow: 0 6px 18px rgba(139, 92, 246, 0.6);
+}
+
+.btn-primary-stopwatch {
+    background: #06B6D4;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: 28px;
+    padding: 10px 32px;
+    border: none;
+    box-shadow: 0 4px 14px rgba(6, 182, 212, 0.45);
+}
+.btn-primary-stopwatch:hover {
+    background: #22D3EE;
+    box-shadow: 0 6px 18px rgba(6, 182, 212, 0.6);
+}
+
+/* Test Presets Bar */
+.test-bar-box {
+    background-color: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 20px;
+    padding: 4px 8px;
+}
+
+.test-preset-btn {
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    color: #CBD5E1;
+    transition: all 150ms ease;
+}
+.test-preset-btn:hover {
+    color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+.test-preset-btn.active-preset {
+    background: #8B5CF6;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
 }
 
 .btn-secondary {

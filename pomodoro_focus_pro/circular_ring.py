@@ -35,6 +35,22 @@ THEMES = {
         "track": (1.0, 1.0, 1.0, 0.08),
         "title": "UZUN MOLA",
         "badge_color": (0.39, 0.40, 0.95, 0.9)
+    },
+    "test": {
+        "primary": (0.55, 0.36, 0.96, 1.0),
+        "primary_rgb": "#8B5CF6",
+        "secondary": (0.55, 0.36, 0.96, 0.25),
+        "track": (1.0, 1.0, 1.0, 0.08),
+        "title": "TEST ÇÖZÜMÜ",
+        "badge_color": (0.55, 0.36, 0.96, 0.9)
+    },
+    "stopwatch": {
+        "primary": (0.02, 0.71, 0.83, 1.0),
+        "primary_rgb": "#06B6D4",
+        "secondary": (0.02, 0.71, 0.83, 0.25),
+        "track": (1.0, 1.0, 1.0, 0.08),
+        "title": "KRONOMETRE",
+        "badge_color": (0.02, 0.71, 0.83, 0.9)
     }
 }
 
@@ -85,8 +101,16 @@ class CircularProgressRing(Gtk.DrawingArea):
 
         theme = THEMES.get(self.mode, THEMES["focus"])
 
-        # In focus mode, adopt active subject accent color
-        if self.mode == "focus" and self.current_subject and "color" in self.current_subject:
+        # In focus or test mode, adopt active subject accent color
+        if self.mode == "test":
+            r, g, b, _ = theme["primary"]
+            glow_rgba = theme["secondary"]
+            title_text = f"📝 {self.current_subject.get('name', 'TEST').upper()} TESTİ"
+        elif self.mode == "stopwatch":
+            r, g, b, _ = theme["primary"]
+            glow_rgba = theme["secondary"]
+            title_text = "⏱️ SERBEST KRONOMETRE"
+        elif self.mode == "focus" and self.current_subject and "color" in self.current_subject:
             sub_col = self.current_subject["color"]
             r, g, b, _ = hex_to_rgba(sub_col, 1.0)
             glow_rgba = (r, g, b, 0.3)
