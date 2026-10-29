@@ -1,0 +1,178 @@
+/* Pomodoro Focus Pro - Modern GNOME Libadwaita Stylesheet */
+
+window.pomodoro-window {
+    background: #141419;
+    color: #F3F4F6;
+}
+
+/* Header styling */
+headerbar.pomodoro-header {
+    background: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.title-pill {
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    color: #E2E8F0;
+}
+
+/* Mode Switcher Tabs */
+.mode-tab-box {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mode-tab {
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 18px;
+    border: none;
+    background: transparent;
+    color: #94A3B8;
+    transition: all 200ms ease;
+}
+
+.mode-tab:hover {
+    color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.mode-tab.active-focus {
+    background: #E53935;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.4);
+}
+
+.mode-tab.active-short-break {
+    background: #10B981;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.mode-tab.active-long-break {
+    background: #6366F1;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+/* Task Tag Pill */
+.task-pill {
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #CBD5E1;
+    transition: all 150ms ease;
+}
+
+.task-pill:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Primary Action Buttons */
+.btn-primary-focus {
+    background: #E53935;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: 28px;
+    padding: 10px 32px;
+    border: none;
+    box-shadow: 0 4px 14px rgba(229, 57, 53, 0.4);
+}
+.btn-primary-focus:hover {
+    background: #EF5350;
+    box-shadow: 0 6px 18px rgba(229, 57, 53, 0.6);
+}
+
+.btn-primary-short-break {
+    background: #10B981;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: 28px;
+    padding: 10px 32px;
+    border: none;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+.btn-primary-short-break:hover {
+    background: #34D399;
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.6);
+}
+
+.btn-primary-long-break {
+    background: #6366F1;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: 28px;
+    padding: 10px 32px;
+    border: none;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+.btn-primary-long-break:hover {
+    background: #818CF8;
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.6);
+}
+
+.btn-secondary {
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #E2E8F0;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 24px;
+    padding: 8px 18px;
+    transition: all 150ms ease;
+}
+.btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+}
+
+/* Statistics Cards */
+.metric-card {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    padding: 14px 18px;
+    min-width: 140px;
+    transition: transform 150ms ease, background-color 150ms ease;
+}
+.metric-card:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.metric-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: #FFFFFF;
+}
+
+.metric-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #94A3B8;
+}
+
+.metric-sub {
+    font-size: 11px;
+    color: #64748B;
+}
+
+/* Mini Mode Styles */
+.mini-mode {
+    background: #12131A;
+}
