@@ -20,6 +20,7 @@ mkdir -p "${BUILD_ROOT}/usr/share/applications"
 mkdir -p "${BUILD_ROOT}/usr/share/icons/hicolor/256x256/apps"
 mkdir -p "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps"
 mkdir -p "${BUILD_ROOT}/usr/share/pomodoro-focus-pro"
+mkdir -p "${BUILD_ROOT}/usr/share/gnome-shell/extensions/pomodoro-focus-pro@erdogan.github.com"
 
 # 1. Control File
 cat << 'EOF' > "${BUILD_ROOT}/DEBIAN/control"
@@ -68,6 +69,9 @@ cp "${REPO_DIR}/pomodoro-focus-pro.desktop" "${BUILD_ROOT}/usr/share/application
 # 6. Icons
 cp "${REPO_DIR}/pomodoro_focus_pro/assets/icon.png" "${BUILD_ROOT}/usr/share/icons/hicolor/256x256/apps/pomodoro-focus-pro.png"
 cp "${REPO_DIR}/pomodoro_focus_pro/assets/icon.svg" "${BUILD_ROOT}/usr/share/icons/hicolor/scalable/apps/pomodoro-focus-pro.svg"
+
+# 7. GNOME Shell Extension
+cp -r "${REPO_DIR}/gnome_extension/pomodoro-focus-pro@erdogan.github.com"/* "${BUILD_ROOT}/usr/share/gnome-shell/extensions/pomodoro-focus-pro@erdogan.github.com/"
 
 # Set permissions: directories 755, files 644, executables 755
 find "${BUILD_ROOT}/usr/share" -type d -exec chmod 755 {} +

@@ -17,6 +17,7 @@ from .circular_ring import CircularProgressRing
 from .heatmap_widget import HeatmapWidget
 from .settings_dialog import SettingsDialog
 from .subject_manager_dialogs import open_subject_dialog, open_profile_dialog, confirm_delete_dialog
+from .dbus_service import DBusService
 
 APP_ID = "com.github.erdogan.PomodoroFocusPro"
 
@@ -24,10 +25,15 @@ class PomodoroApp(Adw.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID)
         self.window = None
+        self._held = False
 
     def do_activate(self):
+        if not self._held:
+            self.hold()
+            self._held = True
         if not self.window:
             self.window = PomodoroMainWindow(self)
+        self.window.set_visible(True)
         self.window.present()
 
 class PomodoroMainWindow(Adw.ApplicationWindow):
@@ -38,6 +44,12 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         self.sound = SoundPlayer(self.storage)
         self.notifier = DesktopNotifier(self.storage)
         self.timer = TimerEngine(self.storage, self.sound, self.notifier)
+
+        # D-Bus IPC service for GNOME Shell Extension
+        self.dbus_service = DBusService(app, self, self.timer, self.storage)
+
+        # Intercept window close to minimize to top-bar instead of quitting
+        self.connect("close-request", self._on_close_request)
 
         self.is_mini_mode = self.storage.config.get("mini_mode", False)
 
@@ -877,6 +889,15 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
             self.timer.reset()
         self._update_stats_display()
         self._refresh_streak_page()
+
+    def _on_close_request(self, window):
+        # Hide window to top-bar tray instead of quitting if background execution is active
+        if self.storage.config.get("run_in_background", True):
+            self.set_visible(False)
+            if self.dbus_service:
+                self.dbus_service.broadcast_status()
+            return True
+        return False
 
     def _toggle_mini_mode(self):
         self.is_mini_mode = not self.is_mini_mode

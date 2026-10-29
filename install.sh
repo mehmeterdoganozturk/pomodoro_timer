@@ -59,6 +59,35 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1; then
     gtk-update-icon-cache -q -t -f "${HOME}/.local/share/icons/hicolor" 2>/dev/null || true
 fi
 
+# Install GNOME Shell Top Bar Extension
+EXT_DIR="${HOME}/.local/share/gnome-shell/extensions/pomodoro-focus-pro@erdogan.github.com"
+mkdir -p "${EXT_DIR}"
+cp -r "${REPO_DIR}/gnome_extension/pomodoro-focus-pro@erdogan.github.com"/* "${EXT_DIR}/"
+
+# Enable extension in gsettings if possible
+python3 -c "
+import gi
+gi.require_version('Gio', '2.0')
+from gi.repository import Gio
+try:
+    settings = Gio.Settings.new('org.gnome.shell')
+    exts = list(settings.get_strv('enabled-extensions'))
+    uuid = 'pomodoro-focus-pro@erdogan.github.com'
+    if uuid not in exts:
+        exts.append(uuid)
+        settings.set_strv('enabled-extensions', exts)
+except Exception:
+    pass
+" 2>/dev/null || true
+
+echo "=========================================================="
+echo " TEBRİKLER! Pomodoro Focus Pro & GNOME Extension Kuruldu!"
+echo ""
+echo " 1. Uygulama: Menüden veya 'pomodoro-focus-pro' ile açabilirsiniz."
+echo " 2. Üst Bar: GNOME Extension 'pomodoro-focus-pro@erdogan.github.com'"
+echo "    sisteme kaydedildi ve aktifleştirildi."
+echo "=========================================================="
+
 echo "=========================================================="
 echo " TEBRİKLER! Pomodoro Focus Pro Başarıyla Kuruldu!"
 echo ""

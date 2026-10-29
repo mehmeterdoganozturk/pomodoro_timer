@@ -1,0 +1,16 @@
+{
+  "name": "Pomodoro Focus Pro Indicator",
+  "description": "Ubuntu GNOME Top Bar Indicator and Sync Service for Pomodoro Focus Pro",
+  "uuid": "pomodoro-focus-pro@erdogan.github.com",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50",
+    "51"
+  ],
+  "url": "https://github.com/erdogan/pomodoro-focus-pro",
+  "version": 1
+}

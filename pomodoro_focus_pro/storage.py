@@ -73,6 +73,7 @@ DEFAULT_CONFIG = {
     "notifications_enabled": True,
     "daily_goal": 8,
     "mini_mode": False,
+    "run_in_background": True,
     "profiles": DEFAULT_PROFILES
 }
 
