@@ -9,23 +9,29 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.set_transient_for(parent_window)
         self.set_modal(True)
         self.set_title("Pomodoro Pro Ayarları")
-        self.set_default_size(520, 580)
+        self.set_default_size(560, 580)
+        self.set_search_enabled(False)
 
         self.storage = storage_manager
         self.sound = sound_player
         self.timer = timer_engine
         self.on_changed = on_settings_changed_callback
 
-        page = Adw.PreferencesPage()
-        self.add(page)
+        # =====================================================================
+        # SAYFA 1: ZAMANLAYICI & AKIŞ
+        # =====================================================================
+        page_timer = Adw.PreferencesPage()
+        page_timer.set_title("Zamanlayıcı")
+        page_timer.set_icon_name("alarm-symbolic")
+        self.add(page_timer)
 
-        # 1. Durations Group
+        # 1. Süre Ayarları Grubu
         dur_group = Adw.PreferencesGroup()
         dur_group.set_title("Süre Ayarları")
         dur_group.set_description("Odaklanma ve mola periyotlarının uzunlukları")
-        page.add(dur_group)
+        page_timer.add(dur_group)
 
-        # Focus duration
+        # Odak Süresi
         self.focus_spin = Adw.SpinRow.new_with_range(1, 90, 1)
         self.focus_spin.set_title("Odaklanma Süresi (Dakika)")
         self.focus_spin.set_subtitle("Ders çalışma ve derin odaklanma süresi")
@@ -33,7 +39,7 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.focus_spin.connect("notify::value", self._on_value_changed)
         dur_group.add(self.focus_spin)
 
-        # Short break duration
+        # Kısa Mola
         self.short_spin = Adw.SpinRow.new_with_range(1, 30, 1)
         self.short_spin.set_title("Kısa Mola Süresi (Dakika)")
         self.short_spin.set_subtitle("Her seans sonrası hızlı nefes alma molası")
@@ -41,7 +47,7 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.short_spin.connect("notify::value", self._on_value_changed)
         dur_group.add(self.short_spin)
 
-        # Long break duration
+        # Uzun Mola
         self.long_spin = Adw.SpinRow.new_with_range(5, 60, 5)
         self.long_spin.set_title("Uzun Mola Süresi (Dakika)")
         self.long_spin.set_subtitle("Belirli seans döngüsünden sonraki dinlenme")
@@ -49,7 +55,7 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.long_spin.connect("notify::value", self._on_value_changed)
         dur_group.add(self.long_spin)
 
-        # Long break interval
+        # Uzun Mola Aralığı
         self.interval_spin = Adw.SpinRow.new_with_range(2, 8, 1)
         self.interval_spin.set_title("Uzun Mola Aralığı")
         self.interval_spin.set_subtitle("Kaç odak seansından sonra uzun mola verilsin?")
@@ -57,12 +63,12 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.interval_spin.connect("notify::value", self._on_value_changed)
         dur_group.add(self.interval_spin)
 
-        # 2. Automation Group
+        # 2. Akış ve Otomasyon Grubu
         auto_group = Adw.PreferencesGroup()
-        auto_group.set_title("Akış & Otomasyon")
-        page.add(auto_group)
+        auto_group.set_title("Akış ve Otomasyon")
+        page_timer.add(auto_group)
 
-        # Auto-start breaks
+        # Otomatik Mola Başlat
         self.auto_break_switch = Adw.SwitchRow()
         self.auto_break_switch.set_title("Otomatik Mola Başlat")
         self.auto_break_switch.set_subtitle("Odaklanma bittiğinde molayı beklemeden başlat")
@@ -70,7 +76,7 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.auto_break_switch.connect("notify::active", self._on_value_changed)
         auto_group.add(self.auto_break_switch)
 
-        # Auto-start pomodoros
+        # Moladan Sonra Otomatik Odaklan
         self.auto_focus_switch = Adw.SwitchRow()
         self.auto_focus_switch.set_title("Moladan Sonra Otomatik Odaklan")
         self.auto_focus_switch.set_subtitle("Mola bittiğinde yeni seansı doğrudan başlat")
@@ -78,7 +84,7 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.auto_focus_switch.connect("notify::active", self._on_value_changed)
         auto_group.add(self.auto_focus_switch)
 
-        # Daily goal
+        # Günlük Hedef
         self.goal_spin = Adw.SpinRow.new_with_range(1, 20, 1)
         self.goal_spin.set_title("Günlük Hedef (Pomodoro)")
         self.goal_spin.set_subtitle("Günde tamamlamayı hedeflediğiniz seans sayısı")
@@ -86,12 +92,20 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.goal_spin.connect("notify::value", self._on_value_changed)
         auto_group.add(self.goal_spin)
 
-        # 3. Sound & Notifications Group
-        alert_group = Adw.PreferencesGroup()
-        alert_group.set_title("Uyarılar & Sesler")
-        page.add(alert_group)
+        # =====================================================================
+        # SAYFA 2: BİLDİRİMLER VE VERİ
+        # =====================================================================
+        page_alerts = Adw.PreferencesPage()
+        page_alerts.set_title("Bildirimler ve Veri")
+        page_alerts.set_icon_name("preferences-system-notifications-symbolic")
+        self.add(page_alerts)
 
-        # Sound switch with test button
+        # 3. Uyarılar ve Sesler Grubu
+        alert_group = Adw.PreferencesGroup()
+        alert_group.set_title("Uyarılar ve Sesler")
+        page_alerts.add(alert_group)
+
+        # Sesli Uyarı
         self.sound_switch = Adw.SwitchRow()
         self.sound_switch.set_title("Sesli Uyarı (Kristal Çan)")
         self.sound_switch.set_subtitle("Süre dolduğunda zarif bir çan sesi çal")
@@ -105,18 +119,18 @@ class SettingsDialog(Adw.PreferencesWindow):
         self.sound_switch.add_suffix(test_sound_btn)
         alert_group.add(self.sound_switch)
 
-        # Desktop notification switch
+        # Masaüstü Bildirimleri
         self.notif_switch = Adw.SwitchRow()
         self.notif_switch.set_title("Masaüstü Bildirimleri")
-        self.notif_switch.set_subtitle("Ubuntu sistem bildirim afişi göster")
+        self.notif_switch.set_subtitle("Ubuntu sistem bildirim afişi ve motivasyon mesajı göster")
         self.notif_switch.set_active(self.storage.config.get("notifications_enabled", True))
         self.notif_switch.connect("notify::active", self._on_value_changed)
         alert_group.add(self.notif_switch)
 
-        # 4. Data management
+        # 4. Veri Yönetimi Grubu
         data_group = Adw.PreferencesGroup()
         data_group.set_title("Veri Yönetimi")
-        page.add(data_group)
+        page_alerts.add(data_group)
 
         reset_row = Adw.ActionRow()
         reset_row.set_title("Bugünün İstatistiklerini Sıfırla")

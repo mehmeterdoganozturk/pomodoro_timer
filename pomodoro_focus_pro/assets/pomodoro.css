@@ -60,12 +60,30 @@ headerbar.pomodoro-header {
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
-/* Subject Chips (Ders Seçici Haplar) */
+/* Subject FlowBox & Chips (Ders Seçici Haplar) */
+flowbox.subject-flowbox {
+    background: transparent;
+}
+
+flowboxchild {
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    border: none;
+    border-radius: 18px;
+}
+
+flowboxchild:selected,
+flowboxchild:focus {
+    background: transparent;
+    outline: none;
+}
+
 .subject-chip {
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.09);
     border-radius: 18px;
-    padding: 5px 14px;
+    padding: 6px 14px;
     font-size: 12px;
     font-weight: 600;
     color: #CBD5E1;
@@ -73,15 +91,16 @@ headerbar.pomodoro-header {
 }
 
 .subject-chip:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.12);
     color: #FFFFFF;
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .subject-chip.active-subject {
-    background: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.18);
     color: #FFFFFF;
     border-color: #38BDF8;
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
 }
 
 /* Daily Discipline Target Bar */
@@ -89,7 +108,7 @@ headerbar.pomodoro-header {
     background-color: rgba(255, 255, 255, 0.04);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 14px;
-    padding: 10px 16px;
+    padding: 12px 18px;
 }
 
 .discipline-title {

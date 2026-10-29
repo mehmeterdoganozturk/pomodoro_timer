@@ -282,27 +282,41 @@ class StorageManager:
             "remaining_to_goal": max(0, goal - today_pomo)
         }
 
-    def get_past_days_data(self, count: int = 28) -> List[Dict[str, Any]]:
+    def get_past_days_data(self) -> List[Dict[str, Any]]:
         """
-        Returns list of day entries for the past N days for heatmap drawing.
+        Returns list of day entries for 4 full weeks (Mon-Sun) for heatmap drawing.
         """
         results = []
         today = date.today()
         goal = self.config.get("daily_goal", 8)
 
-        for i in range(count - 1, -1, -1):
-            d = today - timedelta(days=i)
+        # Align to 4 full weeks ending on Sunday of current week
+        days_to_sunday = 6 - today.weekday()
+        end_date = today + timedelta(days=days_to_sunday)
+        start_date = end_date - timedelta(days=27)
+
+        day_names = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"]
+
+        for i in range(28):
+            d = start_date + timedelta(days=i)
             d_str = d.isoformat()
-            if d_str == today.isoformat():
+            is_today = (d == today)
+            is_future = (d > today)
+
+            if is_today:
                 pomo = self.stats.get("today_pomodoros", 0)
                 sec = self.stats.get("today_focus_seconds", 0)
+            elif is_future:
+                pomo = 0
+                sec = 0
             else:
                 entry = self.history.get(d_str, {})
                 pomo = entry.get("pomodoros", 0)
                 sec = entry.get("focus_seconds", 0)
 
-            # Intensity level 0..4
-            if pomo == 0:
+            if is_future:
+                level = -1
+            elif pomo == 0:
                 level = 0
             elif pomo < goal * 0.4:
                 level = 1
@@ -311,16 +325,17 @@ class StorageManager:
             elif pomo < goal:
                 level = 3
             else:
-                level = 4  # Full goal met!
+                level = 4
 
             results.append({
                 "date": d_str,
-                "day_name": d.strftime("%a"),
+                "day_name": day_names[d.weekday()],
                 "day_num": d.day,
                 "pomodoros": pomo,
                 "focus_seconds": sec,
                 "level": level,
-                "is_today": (d == today)
+                "is_today": is_today,
+                "is_future": is_future
             })
         return results
 

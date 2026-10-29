@@ -174,16 +174,18 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         self.tab_long.connect("clicked", lambda b: self._select_mode(MODE_LONG_BREAK))
         self.tabs_container.append(self.tab_long)
 
-        # 2. Subject Selector Chips (Ders Seçici)
-        self.subject_scroll = Gtk.ScrolledWindow()
-        self.subject_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
-        self.subject_scroll.set_max_content_width(520)
-        self.subject_scroll.set_min_content_height(42)
-
-        self.subject_chips_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
-        self.subject_chips_box.set_halign(Gtk.Align.CENTER)
-        self.subject_scroll.set_child(self.subject_chips_box)
-        self.timer_page_box.append(self.subject_scroll)
+        # 2. Subject Selector Chips (Ders Seçici FlowBox - No ugly scrollbar)
+        self.subject_flowbox = Gtk.FlowBox()
+        self.subject_flowbox.add_css_class("subject-flowbox")
+        self.subject_flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.subject_flowbox.set_max_children_per_line(4)
+        self.subject_flowbox.set_min_children_per_line(3)
+        self.subject_flowbox.set_column_spacing(8)
+        self.subject_flowbox.set_row_spacing(8)
+        self.subject_flowbox.set_halign(Gtk.Align.CENTER)
+        self.subject_flowbox.set_valign(Gtk.Align.CENTER)
+        self.subject_flowbox.set_homogeneous(False)
+        self.timer_page_box.append(self.subject_flowbox)
 
         self._populate_subject_chips()
 
@@ -481,8 +483,8 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
     # =========================================================================
     def _populate_subject_chips(self):
         # Clear existing chips
-        while child := self.subject_chips_box.get_first_child():
-            self.subject_chips_box.remove(child)
+        while child := self.subject_flowbox.get_first_child():
+            self.subject_flowbox.remove(child)
 
         subjects = self.storage.get_subjects()
         sel_sub = self.storage.get_selected_subject()
@@ -495,7 +497,7 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
                 chip_btn.add_css_class("active-subject")
 
             chip_btn.connect("clicked", self._make_subject_chip_handler(s))
-            self.subject_chips_box.append(chip_btn)
+            self.subject_flowbox.append(chip_btn)
 
     def _make_subject_chip_handler(self, subject: dict):
         def _handler(btn):
@@ -707,7 +709,7 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         if is_mini:
             self.view_switcher.set_visible(False)
             self.tabs_container.set_visible(False)
-            self.subject_scroll.set_visible(False)
+            self.subject_flowbox.set_visible(False)
             self.discipline_box.set_visible(False)
             self.stats_cards_container.set_visible(False)
             self.reset_btn.set_visible(False)
@@ -721,7 +723,7 @@ class PomodoroMainWindow(Adw.ApplicationWindow):
         else:
             self.view_switcher.set_visible(True)
             self.tabs_container.set_visible(True)
-            self.subject_scroll.set_visible(True)
+            self.subject_flowbox.set_visible(True)
             self.discipline_box.set_visible(True)
             self.stats_cards_container.set_visible(True)
             self.reset_btn.set_visible(True)
