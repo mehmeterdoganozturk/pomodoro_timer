@@ -18,7 +18,7 @@ class TimerEngine:
         self.mode = MODE_FOCUS
         self.state = STATE_STOPPED
 
-        self.session_count = 0  # Count in current cycle (1 to long_break_interval)
+        self.session_count = 0
         self.total_duration_seconds = self._get_mode_duration_seconds(self.mode)
         self.remaining_seconds = float(self.total_duration_seconds)
         self.last_tick_time = None
@@ -112,7 +112,6 @@ class TimerEngine:
         self._notify_tick()
 
     def skip(self):
-        # Advance to next phase without completing the current timer
         self._advance_to_next_mode(completed=False)
 
     def _on_timer_tick(self) -> bool:
@@ -141,25 +140,27 @@ class TimerEngine:
         current_mode = self.mode
 
         if current_mode == MODE_FOCUS:
-            # Completed a Pomodoro!
             self.session_count += 1
             focus_sec = self.total_duration_seconds
-            self.storage.record_completed_pomodoro(focus_sec)
+
+            subject = self.storage.get_selected_subject()
+            sub_id = subject.get("id", "genel")
+            sub_name = subject.get("name", "Ders Çalışma")
+            sub_icon = subject.get("icon", "🎯")
+
+            self.storage.record_completed_pomodoro(focus_sec, sub_id)
             self.sound.play_focus_complete()
 
-            # Determine if next is long or short break
             interval = self.storage.config.get("long_break_interval", 4)
             is_long = (self.session_count % interval == 0)
             break_mins = self.storage.config.get("long_break_duration" if is_long else "short_break_duration", 15 if is_long else 5)
-            self.notifier.notify_focus_finished(break_mins, is_long_break=is_long)
+            self.notifier.notify_focus_finished(sub_name, sub_icon, break_mins, is_long_break=is_long)
 
-            # Switch to break mode
             next_mode = MODE_LONG_BREAK if is_long else MODE_SHORT_BREAK
             auto_start = self.storage.config.get("auto_start_breaks", False)
             self._advance_to_next_mode(completed=True, next_mode=next_mode, auto_start=auto_start)
 
         else:
-            # Completed a break
             self.storage.record_completed_break()
             self.sound.play_break_complete()
             self.notifier.notify_break_finished()
