@@ -4,10 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.erdogan.pomodorofocuspro.data.PomodoroRepository
+import com.github.erdogan.pomodorofocuspro.engine.TimerEngine
 import com.github.erdogan.pomodorofocuspro.model.*
-import com.github.erdogan.pomodorofocuspro.util.SoundHelper
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import com.github.erdogan.pomodorofocuspro.widget.PomodoroWidgetProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -64,28 +63,45 @@ data class MainUiState(
 class MainScreenViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = PomodoroRepository(application)
-    private val soundHelper = SoundHelper(application)
-
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
-    private var timerJob: Job? = null
-
     init {
+        TimerEngine.init(application)
         val cfg = repository.loadConfig()
         val streakPair = repository.calculateStreak(cfg.dailyGoal)
         val heatmap = repository.getLast28Days()
+        val engState = TimerEngine.stateFlow.value
 
         _uiState.value = _uiState.value.copy(
             config = cfg,
-            remainingSeconds = cfg.focusDuration * 60,
-            totalSeconds = cfg.focusDuration * 60,
+            mode = engState.mode,
+            state = engState.state,
+            remainingSeconds = engState.remainingSeconds,
+            totalSeconds = engState.totalSeconds,
+            stopwatchSeconds = engState.stopwatchSeconds,
+            sessionCount = engState.sessionCount,
             todayRecord = repository.getRecordForDate(repository.getTodayDateStr()),
             streak = streakPair.first,
             bestStreak = streakPair.second,
             heatmapDays = heatmap
         )
 
+        // Observe TimerEngine
+        viewModelScope.launch {
+            TimerEngine.stateFlow.collect { engineState ->
+                _uiState.value = _uiState.value.copy(
+                    mode = engineState.mode,
+                    state = engineState.state,
+                    remainingSeconds = engineState.remainingSeconds,
+                    totalSeconds = engineState.totalSeconds,
+                    stopwatchSeconds = engineState.stopwatchSeconds,
+                    sessionCount = engineState.sessionCount
+                )
+            }
+        }
+
+        // Observe Config changes
         viewModelScope.launch {
             repository.configFlow.collect { newCfg ->
                 val streak = repository.calculateStreak(newCfg.dailyGoal)
@@ -97,6 +113,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
             }
         }
 
+        // Observe Today Record changes
         viewModelScope.launch {
             repository.todayRecordFlow.collect { record ->
                 val streak = repository.calculateStreak(_uiState.value.config.dailyGoal)
@@ -123,161 +140,31 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun switchMode(newMode: TimerMode) {
-        pause()
-        val dur = getDurationForMode(newMode)
-        _uiState.value = _uiState.value.copy(
-            mode = newMode,
-            state = TimerState.STOPPED,
-            totalSeconds = dur,
-            remainingSeconds = dur,
-            stopwatchSeconds = 0
-        )
+        TimerEngine.switchMode(getApplication(), newMode)
     }
 
     fun setTestPreset(minutes: Int) {
-        pause()
-        val sec = minutes * 60
-        _uiState.value = _uiState.value.copy(
-            mode = TimerMode.TEST,
-            state = TimerState.STOPPED,
-            totalSeconds = sec,
-            remainingSeconds = sec
-        )
-    }
-
-    private fun getDurationForMode(mode: TimerMode): Int {
-        val cfg = _uiState.value.config
-        return when (mode) {
-            TimerMode.POMODORO -> cfg.focusDuration * 60
-            TimerMode.TEST -> cfg.testDuration * 60
-            TimerMode.SHORT_BREAK -> cfg.shortBreakDuration * 60
-            TimerMode.LONG_BREAK -> cfg.longBreakDuration * 60
-            TimerMode.STOPWATCH -> 0
-        }
+        TimerEngine.setTestPreset(getApplication(), minutes)
     }
 
     fun toggleStartPause() {
-        if (_uiState.value.state == TimerState.RUNNING) {
-            pause()
-        } else {
-            start()
-        }
+        TimerEngine.toggleStartPause(getApplication())
     }
 
     fun start() {
-        if (_uiState.value.state == TimerState.RUNNING) return
-        _uiState.value = _uiState.value.copy(state = TimerState.RUNNING)
-
-        timerJob?.cancel()
-        timerJob = viewModelScope.launch {
-            while (_uiState.value.state == TimerState.RUNNING) {
-                delay(1000L)
-                tick()
-            }
-        }
+        TimerEngine.start(getApplication())
     }
 
     fun pause() {
-        timerJob?.cancel()
-        timerJob = null
-        _uiState.value = _uiState.value.copy(state = TimerState.PAUSED)
+        TimerEngine.pause(getApplication())
     }
 
     fun reset() {
-        pause()
-        val dur = getDurationForMode(_uiState.value.mode)
-        _uiState.value = _uiState.value.copy(
-            state = TimerState.STOPPED,
-            totalSeconds = dur,
-            remainingSeconds = dur,
-            stopwatchSeconds = 0
-        )
+        TimerEngine.reset(getApplication())
     }
 
     fun skipNext() {
-        pause()
-        when (_uiState.value.mode) {
-            TimerMode.POMODORO, TimerMode.TEST -> {
-                val nextCount = _uiState.value.sessionCount + 1
-                val isLong = nextCount % _uiState.value.config.longBreakInterval == 0
-                val nextMode = if (isLong) TimerMode.LONG_BREAK else TimerMode.SHORT_BREAK
-                _uiState.value = _uiState.value.copy(sessionCount = nextCount)
-                switchMode(nextMode)
-            }
-            TimerMode.SHORT_BREAK, TimerMode.LONG_BREAK, TimerMode.STOPWATCH -> {
-                switchMode(TimerMode.POMODORO)
-            }
-        }
-    }
-
-    private fun tick() {
-        val current = _uiState.value
-
-        if (current.mode == TimerMode.STOPWATCH) {
-            _uiState.value = current.copy(stopwatchSeconds = current.stopwatchSeconds + 1)
-            return
-        }
-
-        if (current.remainingSeconds > 1) {
-            _uiState.value = current.copy(remainingSeconds = current.remainingSeconds - 1)
-        } else {
-            // Time complete!
-            onTimerComplete()
-        }
-    }
-
-    private fun onTimerComplete() {
-        val current = _uiState.value
-        val completedMode = current.mode
-        val subjectId = current.activeSubject?.id ?: "genel"
-        val durMins = current.totalSeconds / 60
-
-        // 1. Record in DB / stats
-        repository.recordCompletedSession(completedMode, subjectId, durMins)
-
-        // 2. Play sound & vibrate
-        if (completedMode == TimerMode.POMODORO || completedMode == TimerMode.TEST) {
-            soundHelper.playFocusComplete(current.config.soundEnabled, current.config.vibrateEnabled)
-        } else {
-            soundHelper.playBreakComplete(current.config.soundEnabled, current.config.vibrateEnabled)
-        }
-
-        // 3. Move to next mode
-        if (completedMode == TimerMode.POMODORO || completedMode == TimerMode.TEST) {
-            val newSessionCount = current.sessionCount + 1
-            val isLong = newSessionCount % current.config.longBreakInterval == 0
-            val nextMode = if (isLong) TimerMode.LONG_BREAK else TimerMode.SHORT_BREAK
-            val nextDur = getDurationForMode(nextMode)
-
-            _uiState.value = current.copy(
-                sessionCount = newSessionCount,
-                mode = nextMode,
-                state = if (current.config.autoStartBreaks) TimerState.RUNNING else TimerState.STOPPED,
-                totalSeconds = nextDur,
-                remainingSeconds = nextDur
-            )
-
-            if (current.config.autoStartBreaks) {
-                start()
-            } else {
-                pause()
-            }
-        } else {
-            // Break ended -> Back to focus
-            val focusDur = getDurationForMode(TimerMode.POMODORO)
-            _uiState.value = current.copy(
-                mode = TimerMode.POMODORO,
-                state = if (current.config.autoStartPomodoros) TimerState.RUNNING else TimerState.STOPPED,
-                totalSeconds = focusDur,
-                remainingSeconds = focusDur
-            )
-
-            if (current.config.autoStartPomodoros) {
-                start()
-            } else {
-                pause()
-            }
-        }
+        TimerEngine.skipNext(getApplication())
     }
 
     fun selectProfile(profileId: String) {
@@ -286,11 +173,13 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         val firstSub = profile.subjects.firstOrNull()?.id ?: ""
         val updated = cfg.copy(activeProfileId = profileId, selectedSubjectId = firstSub)
         repository.saveConfig(updated)
+        PomodoroWidgetProvider.updateAllWidgets(getApplication())
     }
 
     fun selectSubject(subjectId: String) {
         val cfg = _uiState.value.config.copy(selectedSubjectId = subjectId)
         repository.saveConfig(cfg)
+        PomodoroWidgetProvider.updateAllWidgets(getApplication())
     }
 
     fun addSubject(profileId: String, name: String, icon: String, colorHex: String, badge: String) {
@@ -310,6 +199,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         updatedProfiles[profileId] = updatedProfile
 
         repository.saveConfig(cfg.copy(profiles = updatedProfiles, selectedSubjectId = newSub.id))
+        PomodoroWidgetProvider.updateAllWidgets(getApplication())
     }
 
     fun deleteSubject(profileId: String, subjectId: String) {
@@ -327,6 +217,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         repository.saveConfig(cfg.copy(profiles = updatedProfiles, selectedSubjectId = nextSelected))
+        PomodoroWidgetProvider.updateAllWidgets(getApplication())
     }
 
     fun toggleSubjectVisibility(profileId: String, subjectId: String) {
@@ -340,6 +231,7 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         updatedProfiles[profileId] = updatedProfile
 
         repository.saveConfig(cfg.copy(profiles = updatedProfiles))
+        PomodoroWidgetProvider.updateAllWidgets(getApplication())
     }
 
     fun saveSettings(
@@ -368,10 +260,10 @@ class MainScreenViewModel(application: Application) : AndroidViewModel(applicati
         )
         repository.saveConfig(cfg)
 
-        // If stopped, refresh duration
+        // If stopped, refresh duration in TimerEngine
         if (_uiState.value.state == TimerState.STOPPED) {
-            val d = getDurationForMode(_uiState.value.mode)
-            _uiState.value = _uiState.value.copy(totalSeconds = d, remainingSeconds = d)
+            TimerEngine.switchMode(getApplication(), _uiState.value.mode)
         }
+        PomodoroWidgetProvider.updateAllWidgets(getApplication())
     }
 }
