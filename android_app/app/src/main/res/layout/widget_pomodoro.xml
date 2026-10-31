@@ -23,6 +23,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="6dp"
             android:layout_marginStart="6dp"
             android:text="Pomodoro Pro"
             android:textColor="#FFFFFF"
@@ -33,19 +34,22 @@
             android:id="@+id/widget_subject_badge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginLeft="6dp"
             android:layout_marginStart="6dp"
             android:background="@drawable/widget_badge_bg"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="2dp"
+            android:paddingLeft="6dp"
+            android:paddingTop="2dp"
+            android:paddingRight="6dp"
+            android:paddingBottom="2dp"
             android:text="📐 Matematik"
             android:textColor="#38BDF8"
             android:textSize="11sp"
             android:textStyle="bold" />
 
-        <!-- Spacer -->
-        <View
+        <!-- Weight Spacer using FrameLayout (RemoteViews supported) -->
+        <FrameLayout
             android:layout_width="0dp"
-            android:layout_height="1dp"
+            android:layout_height="0dp"
             android:layout_weight="1" />
 
         <TextView
@@ -53,8 +57,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/widget_badge_bg"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="2dp"
+            android:paddingLeft="8dp"
+            android:paddingTop="2dp"
+            android:paddingRight="8dp"
+            android:paddingBottom="2dp"
             android:text="🔥 1 Gün"
             android:textColor="#FB923C"
             android:textSize="11sp"
@@ -76,7 +82,7 @@
             android:includeFontPadding="false"
             android:text="25:00"
             android:textColor="#FFFFFF"
-            android:textSize="38sp"
+            android:textSize="36sp"
             android:textStyle="bold" />
 
         <TextView
@@ -86,7 +92,7 @@
             android:layout_marginTop="2dp"
             android:text="🍅 Odaklanma Zamanı • Hedef: 8 Seans"
             android:textColor="#94A3B8"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
     </LinearLayout>
 
     <!-- Bottom Controls Row -->
@@ -96,45 +102,44 @@
         android:gravity="center"
         android:orientation="horizontal">
 
-        <Button
+        <TextView
             android:id="@+id/widget_btn_toggle"
             android:layout_width="0dp"
             android:layout_height="38dp"
             android:layout_weight="1.2"
             android:background="@drawable/widget_btn_play"
-            android:stateListAnimator="@null"
+            android:clickable="true"
+            android:gravity="center"
             android:text="▶️ Başlat"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold" />
 
-        <Space
-            android:layout_width="8dp"
-            android:layout_height="1dp" />
-
-        <Button
+        <TextView
             android:id="@+id/widget_btn_reset"
             android:layout_width="0dp"
             android:layout_height="38dp"
+            android:layout_marginLeft="8dp"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn_secondary"
-            android:stateListAnimator="@null"
+            android:clickable="true"
+            android:gravity="center"
             android:text="🔄 Sıfırla"
             android:textColor="#E2E8F0"
             android:textSize="12sp" />
 
-        <Space
-            android:layout_width="8dp"
-            android:layout_height="1dp" />
-
-        <Button
+        <TextView
             android:id="@+id/widget_btn_open"
             android:layout_width="0dp"
             android:layout_height="38dp"
+            android:layout_marginLeft="8dp"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn_secondary"
-            android:stateListAnimator="@null"
-            android:text="🚀 Uygulama"
+            android:clickable="true"
+            android:gravity="center"
+            android:text="🚀 Aç"
             android:textColor="#E2E8F0"
             android:textSize="12sp" />
     </LinearLayout>
