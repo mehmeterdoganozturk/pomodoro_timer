@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Mehmet Erdoğan Öztürk <mehmeterdoganozturk@gmail.com>
+ * Licensed under the MIT License. See LICENSE in the project root for details.
+ */
+
 package com.github.erdogan.pomodorofocuspro
 
 import android.os.Bundle
