@@ -20,3 +20,11 @@ dist/
 *.log
 .cache/
 .DS_Store
+
+# Android build & IDE artifacts
+android_app/.gradle/
+android_app/build/
+android_app/*/build/
+android_app/local.properties
+android_app/.idea/
+android_app/*.iml
